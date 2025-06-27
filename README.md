@@ -321,3 +321,5 @@ Para suporte ou dúvidas, entre em contato através dos canais oficiais do ImobP
 ---
 
 **ImobPay Desktop** - Transformando a gestão imobiliária em uma experiência desktop moderna e eficiente. 
+
+<!-- Trigger redeploy Vercel -->

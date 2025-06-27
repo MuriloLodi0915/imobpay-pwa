@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { supabase } from '../supabaseClient';
 
 interface AuthContextType {
   user: User | null;
@@ -28,7 +29,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simular verificação de autenticação
+    // Verifica se há usuário logado no localStorage
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -38,58 +39,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Simular login - em produção, isso seria uma chamada para API
-    if (email === 'admin@imobpay.com' && password === 'admin123') {
-      const mockUser: User = {
-        id: '1',
-        name: 'Administrador',
-        email: 'admin@imobpay.com',
-        role: 'admin',
-        avatar: '/avatar-default.png'
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password); // Em produção, use hash!
+      if (error || !data || data.length === 0) {
+        setIsLoading(false);
+        return false;
+      }
+      setUser(data[0]);
+      localStorage.setItem('user', JSON.stringify(data[0]));
       setIsLoading(false);
       return true;
+    } catch (err) {
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
     try {
-      // Simular registro - em produção, isso seria uma chamada para API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Verificar se o email já existe (simulação)
-      const existingUser = localStorage.getItem('user');
-      if (existingUser) {
-        const user = JSON.parse(existingUser);
-        if (user.email === email) {
-          setIsLoading(false);
-          return false; // Email já existe
-        }
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{ name, email, password }]);
+      if (error) {
+        setIsLoading(false);
+        return false;
       }
-      
-      // Criar novo usuário
-      const newUser: User = {
-        id: Date.now().toString(),
-        name,
-        email,
-        role: 'user',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`
-      };
-      
-      setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
+      setUser(data[0]);
+      localStorage.setItem('user', JSON.stringify(data[0]));
       setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (err) {
       setIsLoading(false);
       return false;
     }

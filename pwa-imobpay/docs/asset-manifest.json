@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/imobpay-pwa/static/css/main.f1c348fd.css",
+    "main.js": "/imobpay-pwa/static/js/main.1216c4fb.js",
+    "index.html": "/imobpay-pwa/index.html",
+    "main.f1c348fd.css.map": "/imobpay-pwa/static/css/main.f1c348fd.css.map",
+    "main.1216c4fb.js.map": "/imobpay-pwa/static/js/main.1216c4fb.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f1c348fd.css",
+    "static/js/main.1216c4fb.js"
+  ]
+}

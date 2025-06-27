@@ -20,7 +20,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', className = '' }) => {
     <img
       src="/ImobPayLogo.png"
       alt="ImobPay Logo"
-      className={`${sizeMap[size]} w-auto rounded-2xl ${className}`}
+      className={`mt-2 ${sizeMap[size]} w-auto rounded-2xl ${className}`}
       style={style}
     />
   );

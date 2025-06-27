@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { supabase } from '../supabaseClient';
 
 interface AuthContextType {
   user: User | null;
@@ -61,36 +62,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
     try {
-      // Simular registro - em produção, isso seria uma chamada para API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Verificar se o email já existe (simulação)
-      const existingUser = localStorage.getItem('user');
-      if (existingUser) {
-        const user = JSON.parse(existingUser);
-        if (user.email === email) {
-          setIsLoading(false);
-          return false; // Email já existe
-        }
+      // Verifica se o email já existe no Supabase
+      const { data: existing, error: selectError } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('email', email)
+        .single();
+      if (selectError && selectError.code !== 'PGRST116') {
+        // Erro diferente de "row not found"
+        setIsLoading(false);
+        console.error('Erro ao verificar email:', selectError.message);
+        return false;
       }
-      
-      // Criar novo usuário
+      if (existing) {
+        setIsLoading(false);
+        return false; // Email já existe
+      }
+      // Insere novo usuário
+      const { data, error } = await supabase
+        .from('usuarios')
+        .insert([{ name, email, password }])
+        .select()
+        .single();
+      if (error) {
+        setIsLoading(false);
+        console.error('Erro ao cadastrar usuário:', error.message);
+        return false;
+      }
+      // Cria objeto User local
       const newUser: User = {
-        id: Date.now().toString(),
-        name,
-        email,
+        id: data.id?.toString() || Date.now().toString(),
+        name: data.name,
+        email: data.email,
         role: 'user',
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`
       };
-      
       setUser(newUser);
       localStorage.setItem('user', JSON.stringify(newUser));
       setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       setIsLoading(false);
+      console.error('Erro inesperado ao cadastrar:', error.message);
       return false;
     }
   };
