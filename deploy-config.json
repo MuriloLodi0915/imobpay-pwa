@@ -1,0 +1,57 @@
+{
+  "name": "ImobPay PWA",
+  "version": "1.0.0",
+  "description": "Configuração de deploy para o PWA ImobPay",
+  "build": {
+    "output": "build",
+    "publicUrl": "/",
+    "optimize": true,
+    "minify": true,
+    "sourceMaps": false
+  },
+  "server": {
+    "port": 3000,
+    "host": "0.0.0.0",
+    "https": true,
+    "headers": {
+      "manifest.json": {
+        "Content-Type": "application/manifest+json"
+      },
+      "sw.js": {
+        "Content-Type": "application/javascript",
+        "Cache-Control": "no-cache"
+      },
+      "offline.html": {
+        "Content-Type": "text/html",
+        "Cache-Control": "public, max-age=3600"
+      }
+    }
+  },
+  "pwa": {
+    "enabled": true,
+    "manifest": "public/manifest.json",
+    "serviceWorker": "public/sw.js",
+    "offlinePage": "public/offline.html",
+    "icons": [
+      "public/icon-16x16.png",
+      "public/icon-32x32.png",
+      "public/icon-192x192.png",
+      "public/icon-512x512.png",
+      "public/apple-touch-icon.png"
+    ]
+  },
+  "cdn": {
+    "enabled": false,
+    "url": "https://cdn.imobpay.com",
+    "cache": {
+      "maxAge": 31536000,
+      "immutable": true
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "analytics": "google-analytics",
+    "errorTracking": "sentry",
+    "performance": "web-vitals"
+  }
+} 

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://imobpay.com/sitemap.xml
+
+# PWA specific
+Allow: /manifest.json
+Allow: /sw.js
+Allow: /offline.html 
