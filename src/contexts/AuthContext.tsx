@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         name: 'Administrador',
         email: 'admin@imobpay.com',
         role: 'admin',
-        avatar: '/avatar-default.png'
+        avatar: process.env.PUBLIC_URL + '/avatar-default.png'
       };
       
       setUser(mockUser);

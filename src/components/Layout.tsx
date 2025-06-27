@@ -157,7 +157,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div className="flex items-center space-x-3">
                   <img
                     className="h-8 w-8 rounded-full"
-                    src={user?.avatar || '/avatar-default.png'}
+                    src={user?.avatar || (process.env.PUBLIC_URL + '/avatar-default.png')}
                     alt=""
                   />
                   <div className="hidden lg:block">
