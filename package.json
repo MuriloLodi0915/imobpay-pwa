@@ -2,7 +2,6 @@
   "name": "imobpay",
   "version": "1.0.0",
   "description": "ImobPay - Sistema de Gestão Financeira de Imóveis",
-  "homepage": "https://murilolodi0915.github.io/imobpay-pwa/",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
