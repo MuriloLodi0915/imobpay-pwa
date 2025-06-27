@@ -14,7 +14,7 @@ Um aplicativo web moderno e responsivo para gestão financeira de imóveis aluga
 - 🌓 **Tema Claro/Escuro** com persistência
 - 📱 **Design Responsivo** para todas as telas
 - ⚡ **Interface Moderna** e intuitiva
-
+.
 ## 🛠️ Tecnologias Utilizadas
 
 - **React 18** com TypeScript
