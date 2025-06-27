@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="refresh" content="0; url=/imobpay-pwa/" />
+    <script>
+      // Redireciona para o index.html preservando a rota do React Router
+      var l = window.location;
+      var path = l.pathname.replace('/imobpay-pwa', '');
+      window.location.replace('/imobpay-pwa/?redirect=' + encodeURIComponent(path + l.search + l.hash));
+    </script>
+  </head>
+  <body>
+    Redirecionando...
+  </body>
+</html> 

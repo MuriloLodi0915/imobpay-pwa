@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -33,6 +33,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const App: React.FC = () => {
+  // Redirecionamento para suportar refresh em rotas do GitHub Pages
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect');
+    if (redirect) {
+      window.history.replaceState({}, '', redirect);
+    }
+  }, []);
+
   return (
     <ThemeProvider>
       <AuthProvider>
