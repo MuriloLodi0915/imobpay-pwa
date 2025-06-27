@@ -52,3 +52,7 @@
     ]
   }
 }
+   {
+     // ...outras chaves
+     "vercel-redeploy": "2"
+   }
