@@ -10,4 +10,11 @@ root.render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
-); 
+);
+
+// Registrar o service worker para PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js');
+  });
+} 
