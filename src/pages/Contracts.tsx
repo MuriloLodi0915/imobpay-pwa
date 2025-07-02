@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { Contract, Property, Tenant } from '../types';
+import { Contract } from '../types';
 import ContractForm from '../components/ContractForm';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
@@ -8,48 +8,28 @@ import { supabase } from '../supabaseClient';
 const Contracts: React.FC = () => {
   const { user } = useAuth();
   const [contracts, setContracts] = useState<Contract[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editContract, setEditContract] = useState<Contract | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Contract | null>(null);
 
   const fetchContracts = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('contracts')
-      .select('*')
-      .eq('user_id', user.id);
-    setContracts(data || []);
-  };
-
-  const fetchProperties = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('properties')
-      .select('*')
-      .eq('user_id', user.id);
-    setProperties(data || []);
-  };
-
-  const fetchTenants = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('tenants')
-      .select('*')
-      .eq('user_id', user.id);
-    setTenants(data || []);
+    if (user) {
+      const { data } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('user_id', user.id);
+      setContracts(data || []);
+    }
   };
 
   useEffect(() => {
     fetchContracts();
-    fetchProperties();
-    fetchTenants();
   }, [user]);
 
   const filtered = contracts.filter(c =>
     (c.status && c.status.toLowerCase().includes(search.toLowerCase()))
+    // Adapte para buscar por outros campos se quiser
   );
 
   const handleAdd = () => {
@@ -67,18 +47,18 @@ const Contracts: React.FC = () => {
   };
 
   const confirmDeleteContract = async () => {
-    if (!user || !confirmDelete) return;
-    await supabase
-      .from('contracts')
-      .delete()
-      .eq('id', confirmDelete.id)
-      .eq('user_id', user.id);
-    fetchContracts();
-    setConfirmDelete(null);
+    if (confirmDelete) {
+      await supabase
+        .from('contracts')
+        .delete()
+        .eq('id', confirmDelete.id)
+        .eq('user_id', user.id);
+      fetchContracts();
+      setConfirmDelete(null);
+    }
   };
 
   const handleFormSubmit = async (data: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
     if (editContract) {
       await supabase
         .from('contracts')
@@ -166,8 +146,6 @@ const Contracts: React.FC = () => {
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{editContract ? 'Editar Contrato' : 'Novo Contrato'}</h2>
             <ContractForm
               initialData={editContract}
-              properties={properties}
-              tenants={tenants}
               onSubmit={handleFormSubmit}
               onCancel={() => { setShowForm(false); setEditContract(null); }}
             />

@@ -14,12 +14,13 @@ const Tenants: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<Tenant | null>(null);
 
   const fetchTenants = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('tenants')
-      .select('*')
-      .eq('user_id', user.id);
-    setTenants(data || []);
+    if (user) {
+      const { data } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('user_id', user.id);
+      setTenants(data || []);
+    }
   };
 
   useEffect(() => {
@@ -47,18 +48,18 @@ const Tenants: React.FC = () => {
   };
 
   const confirmDeleteTenant = async () => {
-    if (!user || !confirmDelete) return;
-    await supabase
-      .from('tenants')
-      .delete()
-      .eq('id', confirmDelete.id)
-      .eq('user_id', user.id);
-    fetchTenants();
-    setConfirmDelete(null);
+    if (confirmDelete) {
+      await supabase
+        .from('tenants')
+        .delete()
+        .eq('id', confirmDelete.id)
+        .eq('user_id', user.id);
+      fetchTenants();
+      setConfirmDelete(null);
+    }
   };
 
   const handleFormSubmit = async (data: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
     if (editTenant) {
       await supabase
         .from('tenants')
