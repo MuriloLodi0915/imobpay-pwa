@@ -2,30 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { Property } from '../types';
 import PropertyForm from '../components/PropertyForm';
-import { mockProperties } from '../data/mockData';
-
-const STORAGE_KEY = 'imobpay_properties';
-
-function getInitialProperties(): Property[] {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    return JSON.parse(saved).map((p: any) => ({ ...p, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) }));
-  }
-  // Se não houver no localStorage, usar mock e salvar
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockProperties));
-  return mockProperties;
-}
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../supabaseClient';
 
 const Properties: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>(getInitialProperties());
+  const { user } = useAuth();
+  const [properties, setProperties] = useState<Property[]>([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editProperty, setEditProperty] = useState<Property | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Property | null>(null);
 
+  const fetchProperties = async () => {
+    if (user) {
+      const { data } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('user_id', user.id);
+      setProperties(data || []);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
-  }, [properties]);
+    fetchProperties();
+  }, [user]);
 
   const filtered = properties.filter(p =>
     p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -46,29 +46,31 @@ const Properties: React.FC = () => {
     setConfirmDelete(property);
   };
 
-  const confirmDeleteProperty = () => {
+  const confirmDeleteProperty = async () => {
     if (confirmDelete) {
-      setProperties(props => props.filter(p => p.id !== confirmDelete.id));
+      await supabase
+        .from('properties')
+        .delete()
+        .eq('id', confirmDelete.id)
+        .eq('user_id', user.id);
+      fetchProperties();
       setConfirmDelete(null);
     }
   };
 
-  const handleFormSubmit = (data: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleFormSubmit = async (data: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editProperty) {
-      setProperties(props => props.map(p =>
-        p.id === editProperty.id ? { ...p, ...data, updatedAt: new Date() } : p
-      ));
+      await supabase
+        .from('properties')
+        .update({ ...data })
+        .eq('id', editProperty.id)
+        .eq('user_id', user.id);
     } else {
-      setProperties(props => [
-        {
-          ...data,
-          id: Math.random().toString(36).substr(2, 9),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        ...props,
-      ]);
+      await supabase
+        .from('properties')
+        .insert([{ ...data, user_id: user.id }]);
     }
+    fetchProperties();
     setShowForm(false);
     setEditProperty(null);
   };
@@ -136,7 +138,7 @@ const Properties: React.FC = () => {
                 <td>{property.bedrooms ?? '-'}</td>
                 <td>{property.bathrooms ?? '-'}</td>
                 <td>{property.area}</td>
-                <td>R$ {property.rentValue.toLocaleString('pt-BR')}</td>
+                <td>R$ {property.rentValue?.toLocaleString('pt-BR')}</td>
                 <td>
                   <div className="flex gap-2">
                     <button className="btn-secondary p-1" title="Editar" onClick={() => handleEdit(property)}>
@@ -184,4 +186,4 @@ const Properties: React.FC = () => {
   );
 };
 
-export default Properties; 
+export default Properties;
