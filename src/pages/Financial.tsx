@@ -14,13 +14,12 @@ const Financial: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<Payment | null>(null);
 
   const fetchPayments = async () => {
-    if (user) {
-      const { data } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('user_id', user.id);
-      setPayments(data || []);
-    }
+    if (!user) return;
+    const { data } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('user_id', user.id);
+    setPayments(data || []);
   };
 
   useEffect(() => {
@@ -48,18 +47,18 @@ const Financial: React.FC = () => {
   };
 
   const confirmDeletePayment = async () => {
-    if (confirmDelete) {
-      await supabase
-        .from('payments')
-        .delete()
-        .eq('id', confirmDelete.id)
-        .eq('user_id', user.id);
-      fetchPayments();
-      setConfirmDelete(null);
-    }
+    if (!user || !confirmDelete) return;
+    await supabase
+      .from('payments')
+      .delete()
+      .eq('id', confirmDelete.id)
+      .eq('user_id', user.id);
+    fetchPayments();
+    setConfirmDelete(null);
   };
 
   const handleFormSubmit = async (data: Omit<Payment, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!user) return;
     if (editPayment) {
       await supabase
         .from('payments')

@@ -14,13 +14,12 @@ const Properties: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<Property | null>(null);
 
   const fetchProperties = async () => {
-    if (user) {
-      const { data } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('user_id', user.id);
-      setProperties(data || []);
-    }
+    if (!user) return;
+    const { data } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('user_id', user.id);
+    setProperties(data || []);
   };
 
   useEffect(() => {
@@ -47,18 +46,18 @@ const Properties: React.FC = () => {
   };
 
   const confirmDeleteProperty = async () => {
-    if (confirmDelete) {
-      await supabase
-        .from('properties')
-        .delete()
-        .eq('id', confirmDelete.id)
-        .eq('user_id', user.id);
-      fetchProperties();
-      setConfirmDelete(null);
-    }
+    if (!user || !confirmDelete) return;
+    await supabase
+      .from('properties')
+      .delete()
+      .eq('id', confirmDelete.id)
+      .eq('user_id', user.id);
+    fetchProperties();
+    setConfirmDelete(null);
   };
 
   const handleFormSubmit = async (data: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!user) return;
     if (editProperty) {
       await supabase
         .from('properties')

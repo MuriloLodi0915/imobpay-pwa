@@ -12,13 +12,12 @@ const Reports: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<Report | null>(null);
 
   const fetchReports = async () => {
-    if (user) {
-      const { data } = await supabase
-        .from('reports')
-        .select('*')
-        .eq('user_id', user.id);
-      setReports(data || []);
-    }
+    if (!user) return;
+    const { data } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('user_id', user.id);
+    setReports(data || []);
   };
 
   useEffect(() => {
@@ -44,18 +43,18 @@ const Reports: React.FC = () => {
   };
 
   const confirmDeleteReport = async () => {
-    if (confirmDelete) {
-      await supabase
-        .from('reports')
-        .delete()
-        .eq('id', confirmDelete.id)
-        .eq('user_id', user.id);
-      fetchReports();
-      setConfirmDelete(null);
-    }
+    if (!user || !confirmDelete) return;
+    await supabase
+      .from('reports')
+      .delete()
+      .eq('id', confirmDelete.id)
+      .eq('user_id', user.id);
+    fetchReports();
+    setConfirmDelete(null);
   };
 
   const handleFormSubmit = async (data: Omit<Report, 'id' | 'createdAt'>) => {
+    if (!user) return;
     if (editReport) {
       await supabase
         .from('reports')
