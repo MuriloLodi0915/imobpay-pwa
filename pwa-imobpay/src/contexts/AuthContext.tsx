@@ -49,10 +49,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsLoading(false);
         return false;
       }
-      setUser(data[0]);
-      localStorage.setItem('user', JSON.stringify(data[0]));
+      if (data && data.length > 0) {
+        setUser(data[0]);
+        localStorage.setItem('user', JSON.stringify(data[0]));
+        setIsLoading(false);
+        return true;
+      }
       setIsLoading(false);
-      return true;
+      return false;
     } catch (err) {
       setIsLoading(false);
       return false;
