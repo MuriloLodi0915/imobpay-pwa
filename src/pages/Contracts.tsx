@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { Contract } from '../types';
+import { Contract, Property, Tenant } from '../types';
 import ContractForm from '../components/ContractForm';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
@@ -8,6 +8,8 @@ import { supabase } from '../supabaseClient';
 const Contracts: React.FC = () => {
   const { user } = useAuth();
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editContract, setEditContract] = useState<Contract | null>(null);
@@ -22,8 +24,28 @@ const Contracts: React.FC = () => {
     setContracts(data || []);
   };
 
+  const fetchProperties = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('user_id', user.id);
+    setProperties(data || []);
+  };
+
+  const fetchTenants = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('user_id', user.id);
+    setTenants(data || []);
+  };
+
   useEffect(() => {
     fetchContracts();
+    fetchProperties();
+    fetchTenants();
   }, [user]);
 
   const filtered = contracts.filter(c =>
@@ -144,6 +166,8 @@ const Contracts: React.FC = () => {
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{editContract ? 'Editar Contrato' : 'Novo Contrato'}</h2>
             <ContractForm
               initialData={editContract}
+              properties={properties}
+              tenants={tenants}
               onSubmit={handleFormSubmit}
               onCancel={() => { setShowForm(false); setEditContract(null); }}
             />
