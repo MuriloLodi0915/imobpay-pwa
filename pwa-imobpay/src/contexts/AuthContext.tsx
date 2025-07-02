@@ -64,8 +64,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .insert([{ name, email, password }]);
-      if (error) {
+        .insert([{ name, email, password }]) as unknown as { data: User[] | null, error: any };
+      if (error || !data || data.length === 0) {
         setIsLoading(false);
         return false;
       }
