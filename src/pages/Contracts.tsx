@@ -1,37 +1,77 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { Contract } from '../types';
+import { Contract, Property, Tenant } from '../types';
 import ContractForm from '../components/ContractForm';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../supabaseClient';
+import { mockContracts, mockProperties, mockTenants } from '../data/mockData';
+
+const STORAGE_KEY = 'imobpay_contracts';
+const PROPERTIES_KEY = 'imobpay_properties';
+const TENANTS_KEY = 'imobpay_tenants';
+
+// Função utilitária para obter contratos do localStorage ou mocks
+function getInitialContracts(): Contract[] {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    return JSON.parse(saved).map((c: any) => ({
+      ...c,
+      startDate: new Date(c.startDate),
+      endDate: new Date(c.endDate),
+      createdAt: new Date(c.createdAt),
+      updatedAt: new Date(c.updatedAt),
+    }));
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockContracts));
+  return mockContracts;
+}
+
+// Função utilitária para obter imóveis
+function getProperties(): Property[] {
+  const saved = localStorage.getItem(PROPERTIES_KEY);
+  if (saved) return JSON.parse(saved);
+  return mockProperties;
+}
+
+// Função utilitária para obter inquilinos
+function getTenants(): Tenant[] {
+  const saved = localStorage.getItem(TENANTS_KEY);
+  if (saved) return JSON.parse(saved);
+  return mockTenants;
+}
 
 const Contracts: React.FC = () => {
-  const { user } = useAuth();
-  const [contracts, setContracts] = useState<Contract[]>([]);
+  // Estados principais do módulo de contratos
+  const [contracts, setContracts] = useState<Contract[]>(getInitialContracts());
+  const [properties, setProperties] = useState<Property[]>(getProperties());
+  const [tenants, setTenants] = useState<Tenant[]>(getTenants());
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editContract, setEditContract] = useState<Contract | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Contract | null>(null);
 
-  const fetchContracts = async () => {
-    if (user) {
-      const { data } = await supabase
-        .from('contracts')
-        .select('*')
-        .eq('user_id', user.id);
-      setContracts(data || []);
-    }
-  };
-
+  // Atualiza localStorage sempre que contratos mudam
   useEffect(() => {
-    fetchContracts();
-  }, [user]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(contracts));
+  }, [contracts]);
 
-  const filtered = contracts.filter(c =>
-    (c.status && c.status.toLowerCase().includes(search.toLowerCase()))
-    // Adapte para buscar por outros campos se quiser
-  );
+  // Atualiza imóveis e inquilinos ao montar
+  useEffect(() => {
+    setProperties(getProperties());
+    setTenants(getTenants());
+  }, []);
 
+  // Filtro de busca por imóvel, inquilino, status ou termos
+  const filtered = contracts.filter(c => {
+    const property = properties.find(p => p.id === c.propertyId);
+    const tenant = tenants.find(t => t.id === c.tenantId);
+    return (
+      (property?.title?.toLowerCase().includes(search.toLowerCase()) || '') ||
+      (tenant?.name?.toLowerCase().includes(search.toLowerCase()) || '') ||
+      (c.status && c.status.toLowerCase().includes(search.toLowerCase())) ||
+      (c.terms && c.terms.toLowerCase().includes(search.toLowerCase()))
+    );
+  });
+
+  // Handlers de CRUD
   const handleAdd = () => {
     setEditContract(null);
     setShowForm(true);
@@ -46,31 +86,30 @@ const Contracts: React.FC = () => {
     setConfirmDelete(contract);
   };
 
-  const confirmDeleteContract = async () => {
+  const confirmDeleteContract = () => {
     if (confirmDelete) {
-      await supabase
-        .from('contracts')
-        .delete()
-        .eq('id', confirmDelete.id)
-        .eq('user_id', user.id);
-      fetchContracts();
+      setContracts(cs => cs.filter(c => c.id !== confirmDelete.id));
       setConfirmDelete(null);
     }
   };
 
-  const handleFormSubmit = async (data: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleFormSubmit = (data: Omit<Contract, 'id' | 'createdAt' | 'updatedAt' | 'property' | 'tenant'>) => {
     if (editContract) {
-      await supabase
-        .from('contracts')
-        .update({ ...data })
-        .eq('id', editContract.id)
-        .eq('user_id', user.id);
+      setContracts(cs => cs.map(c =>
+        c.id === editContract.id ? { ...c, ...data, updatedAt: new Date() } : c
+      ));
     } else {
-      await supabase
-        .from('contracts')
-        .insert([{ ...data, user_id: user.id }]);
+      setContracts(cs => [
+        {
+          ...data,
+          id: (Math.max(0, ...cs.map(c => Number(c.id))) + 1).toString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          status: data.status as 'active' | 'expired' | 'terminated',
+        },
+        ...cs,
+      ]);
     }
-    fetchContracts();
     setShowForm(false);
     setEditContract(null);
   };
@@ -92,7 +131,7 @@ const Contracts: React.FC = () => {
           <input
             type="text"
             className="input pl-10"
-            placeholder="Buscar por status..."
+            placeholder="Buscar por imóvel ou inquilino..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -104,48 +143,64 @@ const Contracts: React.FC = () => {
         <table className="table">
           <thead>
             <tr>
-              <th>Status</th>
+              <th>Imóvel</th>
+              <th>Inquilino</th>
               <th>Início</th>
               <th>Término</th>
               <th>Valor (R$)</th>
+              <th>Status</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center text-gray-400 py-8">Nenhum contrato encontrado.</td>
+                <td colSpan={7} className="text-center text-gray-400 py-8">Nenhum contrato encontrado.</td>
               </tr>
             )}
-            {filtered.map(contract => (
-              <tr key={contract.id}>
-                <td>{contract.status}</td>
-                <td>{contract.startDate ? new Date(contract.startDate).toLocaleDateString('pt-BR') : '-'}</td>
-                <td>{contract.endDate ? new Date(contract.endDate).toLocaleDateString('pt-BR') : '-'}</td>
-                <td>R$ {contract.rentValue?.toLocaleString('pt-BR')}</td>
-                <td>
-                  <div className="flex gap-2">
-                    <button className="btn-secondary p-1" title="Editar" onClick={() => handleEdit(contract)}>
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button className="btn-danger p-1" title="Remover" onClick={() => handleDelete(contract)}>
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filtered.map(contract => {
+              const property = properties.find(p => p.id === contract.propertyId);
+              const tenant = tenants.find(t => t.id === contract.tenantId);
+              return (
+                <tr key={contract.id}>
+                  <td>{property?.title || '-'}</td>
+                  <td>{tenant?.name || '-'}</td>
+                  <td>{contract.startDate ? new Date(contract.startDate).toLocaleDateString('pt-BR') : '-'}</td>
+                  <td>{contract.endDate ? new Date(contract.endDate).toLocaleDateString('pt-BR') : '-'}</td>
+                  <td>R$ {contract.rentValue.toLocaleString('pt-BR')}</td>
+                  <td>
+                    <span className={`badge ${
+                      contract.status === 'active' ? 'badge-success' :
+                      contract.status === 'expired' ? 'badge-warning' :
+                      'badge-danger'
+                    }`}>{contract.status === 'active' ? 'Ativo' : contract.status === 'expired' ? 'Expirado' : 'Rescindido'}</span>
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
+                      <button className="btn-secondary p-1" title="Editar" onClick={() => handleEdit(contract)}>
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button className="btn-danger p-1" title="Remover" onClick={() => handleDelete(contract)}>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {/* Modal de cadastro/edição */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-lg animate-fade-in">
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{editContract ? 'Editar Contrato' : 'Novo Contrato'}</h2>
             <ContractForm
               initialData={editContract}
+              properties={properties}
+              tenants={tenants}
               onSubmit={handleFormSubmit}
               onCancel={() => { setShowForm(false); setEditContract(null); }}
             />
@@ -155,10 +210,10 @@ const Contracts: React.FC = () => {
 
       {/* Modal de confirmação de remoção */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md animate-fade-in">
             <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Remover Contrato</h2>
-            <p className="mb-6 text-gray-700 dark:text-gray-300">Tem certeza que deseja remover o contrato?</p>
+            <p className="mb-6 text-gray-700 dark:text-gray-300">Tem certeza que deseja remover este contrato?</p>
             <div className="flex justify-end gap-2">
               <button className="btn-secondary" onClick={() => setConfirmDelete(null)}>Cancelar</button>
               <button className="btn-danger" onClick={confirmDeleteContract}>Remover</button>
@@ -170,4 +225,4 @@ const Contracts: React.FC = () => {
   );
 };
 
-export default Contracts;
+export default memo(Contracts); 

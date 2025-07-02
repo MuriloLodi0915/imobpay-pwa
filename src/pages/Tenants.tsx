@@ -2,30 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { Tenant } from '../types';
 import TenantForm from '../components/TenantForm';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../supabaseClient';
+import { mockTenants } from '../data/mockData';
+
+const STORAGE_KEY = 'imobpay_tenants';
+
+function getInitialTenants(): Tenant[] {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    return JSON.parse(saved).map((t: any) => ({ ...t, createdAt: new Date(t.createdAt), updatedAt: new Date(t.updatedAt) }));
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockTenants));
+  return mockTenants;
+}
 
 const Tenants: React.FC = () => {
-  const { user } = useAuth();
-  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>(getInitialTenants());
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editTenant, setEditTenant] = useState<Tenant | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Tenant | null>(null);
 
-  const fetchTenants = async () => {
-    if (user) {
-      const { data } = await supabase
-        .from('tenants')
-        .select('*')
-        .eq('user_id', user.id);
-      setTenants(data || []);
-    }
-  };
-
   useEffect(() => {
-    fetchTenants();
-  }, [user]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tenants));
+  }, [tenants]);
 
   const filtered = tenants.filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -47,31 +46,29 @@ const Tenants: React.FC = () => {
     setConfirmDelete(tenant);
   };
 
-  const confirmDeleteTenant = async () => {
+  const confirmDeleteTenant = () => {
     if (confirmDelete) {
-      await supabase
-        .from('tenants')
-        .delete()
-        .eq('id', confirmDelete.id)
-        .eq('user_id', user.id);
-      fetchTenants();
+      setTenants(ts => ts.filter(t => t.id !== confirmDelete.id));
       setConfirmDelete(null);
     }
   };
 
-  const handleFormSubmit = async (data: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleFormSubmit = (data: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (editTenant) {
-      await supabase
-        .from('tenants')
-        .update({ ...data })
-        .eq('id', editTenant.id)
-        .eq('user_id', user.id);
+      setTenants(ts => ts.map(t =>
+        t.id === editTenant.id ? { ...t, ...data, updatedAt: new Date() } : t
+      ));
     } else {
-      await supabase
-        .from('tenants')
-        .insert([{ ...data, user_id: user.id }]);
+      setTenants(ts => [
+        {
+          ...data,
+          id: Math.random().toString(36).substr(2, 9),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        ...ts,
+      ]);
     }
-    fetchTenants();
     setShowForm(false);
     setEditTenant(null);
   };
@@ -173,4 +170,4 @@ const Tenants: React.FC = () => {
   );
 };
 
-export default Tenants;
+export default Tenants; 

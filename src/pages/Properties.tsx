@@ -1,87 +1,117 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { Property } from '../types';
-import PropertyForm from '../components/PropertyForm';
-import { mockProperties } from '../data/mockData';
+import { Payment, Contract } from '../types';
+import FinancialForm from '../components/FinancialForm';
+import { mockPayments, mockContracts } from '../data/mockData';
 
-const STORAGE_KEY = 'imobpay_properties';
+const STORAGE_KEY = 'imobpay_payments';
+const CONTRACTS_KEY = 'imobpay_contracts';
 
-function getInitialProperties(): Property[] {
+function getInitialPayments(): Payment[] {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
-    return JSON.parse(saved).map((p: any) => ({ ...p, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) }));
+    return JSON.parse(saved).map((p: any) => ({
+      ...p,
+      dueDate: new Date(p.dueDate),
+      paidDate: p.paidDate ? new Date(p.paidDate) : undefined,
+      createdAt: new Date(p.createdAt),
+      updatedAt: new Date(p.updatedAt),
+    }));
   }
-  // Se não houver no localStorage, usar mock e salvar
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockProperties));
-  return mockProperties;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockPayments));
+  return mockPayments;
 }
 
-const Properties: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>(getInitialProperties());
+function getContracts(): Contract[] {
+  const saved = localStorage.getItem(CONTRACTS_KEY);
+  if (saved) return JSON.parse(saved).map((c: any) => ({
+    ...c,
+    startDate: new Date(c.startDate),
+    endDate: new Date(c.endDate),
+    createdAt: new Date(c.createdAt),
+    updatedAt: new Date(c.updatedAt),
+  }));
+  return mockContracts;
+}
+
+const Financial: React.FC = () => {
+  const [payments, setPayments] = useState<Payment[]>(getInitialPayments());
+  const [contracts, setContracts] = useState<Contract[]>(getContracts());
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [editProperty, setEditProperty] = useState<Property | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<Property | null>(null);
+  const [editPayment, setEditPayment] = useState<Payment | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Payment | null>(null);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
-  }, [properties]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payments));
+  }, [payments]);
 
-  const filtered = properties.filter(p =>
-    p.title.toLowerCase().includes(search.toLowerCase()) ||
-    p.address.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    setContracts(getContracts());
+  }, []);
+
+  const filtered = payments.filter(p => {
+    const contract = contracts.find(c => c.id === p.contractId);
+    return (
+      (contract?.id?.toString().includes(search) || '') ||
+      (p.status && p.status.toLowerCase().includes(search.toLowerCase())) ||
+      (p.type && p.type.toLowerCase().includes(search.toLowerCase())) ||
+      (p.description && p.description.toLowerCase().includes(search.toLowerCase()))
+    );
+  });
 
   const handleAdd = () => {
-    setEditProperty(null);
+    setEditPayment(null);
     setShowForm(true);
   };
 
-  const handleEdit = (property: Property) => {
-    setEditProperty(property);
+  const handleEdit = (payment: Payment) => {
+    setEditPayment(payment);
     setShowForm(true);
   };
 
-  const handleDelete = (property: Property) => {
-    setConfirmDelete(property);
+  const handleDelete = (payment: Payment) => {
+    setConfirmDelete(payment);
   };
 
-  const confirmDeleteProperty = () => {
+  const confirmDeletePayment = () => {
     if (confirmDelete) {
-      setProperties(props => props.filter(p => p.id !== confirmDelete.id));
+      setPayments(ps => ps.filter(p => p.id !== confirmDelete.id));
       setConfirmDelete(null);
     }
   };
 
-  const handleFormSubmit = (data: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (editProperty) {
-      setProperties(props => props.map(p =>
-        p.id === editProperty.id ? { ...p, ...data, updatedAt: new Date() } : p
+  const handleFormSubmit = (data: Omit<Payment, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (editPayment) {
+      setPayments(ps => ps.map(p =>
+        p.id === editPayment.id ? { ...p, ...data, updatedAt: new Date() } : p
       ));
     } else {
-      setProperties(props => [
+      setPayments(ps => [
         {
           ...data,
-          id: Math.random().toString(36).substr(2, 9),
+          id: (Math.max(0, ...ps.map(p => Number(p.id))) + 1).toString(),
           createdAt: new Date(),
           updatedAt: new Date(),
         },
-        ...props,
+        ...ps,
       ]);
     }
     setShowForm(false);
-    setEditProperty(null);
+    setEditPayment(null);
   };
+
+  const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Imóveis</h1>
-          <p className="text-gray-500 dark:text-gray-400">Gestão de imóveis cadastrados.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Financeiro</h1>
+          <p className="text-gray-500 dark:text-gray-400">Gestão financeira dos imóveis.</p>
         </div>
         <button className="btn-primary flex items-center gap-2" onClick={handleAdd}>
-          <Plus className="w-5 h-5" /> Novo Imóvel
+          <Plus className="w-5 h-5" /> Novo Lançamento
         </button>
       </div>
 
@@ -90,7 +120,7 @@ const Properties: React.FC = () => {
           <input
             type="text"
             className="input pl-10"
-            placeholder="Buscar por título ou endereço..."
+            placeholder="Buscar por contrato, status, tipo ou descrição..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -102,66 +132,66 @@ const Properties: React.FC = () => {
         <table className="table">
           <thead>
             <tr>
-              <th>Título</th>
-              <th>Endereço</th>
-              <th>Tipo</th>
+              <th>Contrato</th>
+              <th>Valor</th>
               <th>Status</th>
-              <th>Quartos</th>
-              <th>Banheiros</th>
-              <th>Área (m²)</th>
-              <th>Valor (R$)</th>
+              <th>Tipo</th>
+              <th>Vencimento</th>
+              <th>Pagamento</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={9} className="text-center text-gray-400 py-8">Nenhum imóvel encontrado.</td>
+                <td colSpan={7} className="text-center text-gray-400 py-8">Nenhum lançamento encontrado.</td>
               </tr>
             )}
-            {filtered.map(property => (
-              <tr key={property.id}>
-                <td>{property.title}</td>
-                <td>{property.address}</td>
-                <td>{property.type === 'apartment' ? 'Apartamento' : property.type === 'house' ? 'Casa' : 'Comercial'}</td>
-                <td>
-                  <span className={
-                    property.status === 'available' ? 'badge-info' :
-                    property.status === 'rented' ? 'badge-success' :
-                    'badge-warning'
-                  }>
-                    {property.status === 'available' ? 'Disponível' : property.status === 'rented' ? 'Alugado' : 'Manutenção'}
-                  </span>
-                </td>
-                <td>{property.bedrooms ?? '-'}</td>
-                <td>{property.bathrooms ?? '-'}</td>
-                <td>{property.area}</td>
-                <td>R$ {property.rentValue.toLocaleString('pt-BR')}</td>
-                <td>
-                  <div className="flex gap-2">
-                    <button className="btn-secondary p-1" title="Editar" onClick={() => handleEdit(property)}>
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button className="btn-danger p-1" title="Remover" onClick={() => handleDelete(property)}>
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filtered.map(payment => {
+              const contract = contracts.find(c => c.id === payment.contractId);
+              return (
+                <tr key={payment.id}>
+                  <td>{contract ? `#${contract.id}` : '-'}</td>
+                  <td>{formatCurrency(payment.amount)}</td>
+                  <td>
+                    <span className={`badge ${
+                      payment.status === 'paid' ? 'badge-success' :
+                      payment.status === 'pending' ? 'badge-warning' :
+                      'badge-danger'
+                    }`}>
+                      {payment.status === 'paid' ? 'Pago' : payment.status === 'pending' ? 'Pendente' : 'Atrasado'}
+                    </span>
+                  </td>
+                  <td>{payment.type === 'rent' ? 'Aluguel' : payment.type === 'deposit' ? 'Depósito' : payment.type === 'fine' ? 'Multa' : 'Outro'}</td>
+                  <td>{payment.dueDate ? new Date(payment.dueDate).toLocaleDateString('pt-BR') : '-'}</td>
+                  <td>{payment.paidDate ? new Date(payment.paidDate).toLocaleDateString('pt-BR') : '-'}</td>
+                  <td>
+                    <div className="flex gap-2">
+                      <button className="btn-secondary p-1" title="Editar" onClick={() => handleEdit(payment)}>
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button className="btn-danger p-1" title="Remover" onClick={() => handleDelete(payment)}>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {/* Modal de cadastro/edição */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-lg animate-fade-in">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{editProperty ? 'Editar Imóvel' : 'Novo Imóvel'}</h2>
-            <PropertyForm
-              initialData={editProperty}
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{editPayment ? 'Editar Lançamento' : 'Novo Lançamento'}</h2>
+            <FinancialForm
+              initialData={editPayment}
+              contracts={contracts}
               onSubmit={handleFormSubmit}
-              onCancel={() => { setShowForm(false); setEditProperty(null); }}
+              onCancel={() => { setShowForm(false); setEditPayment(null); }}
             />
           </div>
         </div>
@@ -169,13 +199,13 @@ const Properties: React.FC = () => {
 
       {/* Modal de confirmação de remoção */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in" role="dialog" aria-modal="true">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md animate-fade-in">
-            <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Remover Imóvel</h2>
-            <p className="mb-6 text-gray-700 dark:text-gray-300">Tem certeza que deseja remover o imóvel <b>{confirmDelete.title}</b>?</p>
+            <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Remover Lançamento</h2>
+            <p className="mb-6 text-gray-700 dark:text-gray-300">Tem certeza que deseja remover este lançamento?</p>
             <div className="flex justify-end gap-2">
               <button className="btn-secondary" onClick={() => setConfirmDelete(null)}>Cancelar</button>
-              <button className="btn-danger" onClick={confirmDeleteProperty}>Remover</button>
+              <button className="btn-danger" onClick={confirmDeletePayment}>Remover</button>
             </div>
           </div>
         </div>
@@ -184,4 +214,4 @@ const Properties: React.FC = () => {
   );
 };
 
-export default Properties; 
+export default Financial; 
