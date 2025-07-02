@@ -45,18 +45,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .select('*')
         .eq('email', email)
         .eq('password', password); // Em produção, use hash!
-if (error || !data || data.length === 0) {
-  setIsLoading(false);
-  return false;
-}
-if (data && data.length > 0) {
-  setUser(data[0]);
-  localStorage.setItem('user', JSON.stringify(data[0]));
-  setIsLoading(false);
-  return true;
-}
-setIsLoading(false);
-return false;
+      if (error || !data || data.length === 0) {
+        setIsLoading(false);
+        return false;
+      }
+      setUser(data[0]);
+      localStorage.setItem('user', JSON.stringify(data[0]));
+      setIsLoading(false);
+      return true;
     } catch (err) {
       setIsLoading(false);
       return false;
@@ -68,15 +64,15 @@ return false;
     try {
       const { data, error } = await supabase
         .from('users')
-        .insert([{ name, email, password }]);
-if (error || !data || data.length === 0) {
-  setIsLoading(false);
-  return false;
-}
-setUser(data[0]);
-localStorage.setItem('user', JSON.stringify(data[0]));
-setIsLoading(false);
-return true;
+        .insert([{ name, email, password }]) as unknown as { data: User[] | null, error: any };
+      if (error || !data || data.length === 0) {
+        setIsLoading(false);
+        return false;
+      }
+      setUser(data[0]);
+      localStorage.setItem('user', JSON.stringify(data[0]));
+      setIsLoading(false);
+      return true;
     } catch (err) {
       setIsLoading(false);
       return false;
@@ -93,4 +89,4 @@ return true;
       {children}
     </AuthContext.Provider>
   );
-}; 
+};
