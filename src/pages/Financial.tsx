@@ -123,7 +123,7 @@ const Financial: React.FC = () => {
             )}
             {filtered.map(payment => (
               <tr key={payment.id}>
-                <td>{formatCurrency(payment.value)}</td>
+                <td>{formatCurrency(payment.amount)}</td>
                 <td>
                   <span className={`badge ${
                     payment.status === 'paid' ? 'badge-success' :
