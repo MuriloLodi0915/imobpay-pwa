@@ -60,6 +60,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
+    console.log('Chamou o register:', { name, email, password }); // <-- log para debug
     setIsLoading(true);
     try {
       const { data, error } = await supabase
