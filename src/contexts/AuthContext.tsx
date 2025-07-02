@@ -69,14 +69,14 @@ return false;
       const { data, error } = await supabase
         .from('users')
         .insert([{ name, email, password }]);
-      if (error) {
-        setIsLoading(false);
-        return false;
-      }
-      setUser(data[0]);
-      localStorage.setItem('user', JSON.stringify(data[0]));
-      setIsLoading(false);
-      return true;
+if (error || !data || data.length === 0) {
+  setIsLoading(false);
+  return false;
+}
+setUser(data[0]);
+localStorage.setItem('user', JSON.stringify(data[0]));
+setIsLoading(false);
+return true;
     } catch (err) {
       setIsLoading(false);
       return false;
