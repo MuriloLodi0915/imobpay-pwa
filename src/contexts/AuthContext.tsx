@@ -60,12 +60,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const register = async (name: string, email: string, password: string): Promise<boolean> => {
+    console.log('Chamou o register:', { name, email, password }); // <-- log para debug
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('users')
-        .insert([{ name, email, password }]);
-      if (error) {
+        .insert([{ name, email, password }]) as unknown as { data: User[] | null, error: any };
+      if (error || !data || data.length === 0) {
+        if (error) {
+          console.error('Supabase insert error:', error);
+        }
         setIsLoading(false);
         return false;
       }
@@ -74,6 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(false);
       return true;
     } catch (err) {
+      console.error('Register catch error:', err);
       setIsLoading(false);
       return false;
     }
@@ -89,4 +94,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-}; 
+};

@@ -1,12 +1,16 @@
 {
-  "name": "imobpay",
+  "name": "imobpay-pwa",
   "version": "1.0.0",
-  "description": "ImobPay - Sistema de Gestão Financeira de Imóveis",
+  "description": "ImobPay - Sistema completo de gestão imobiliária PWA",
+  "homepage": "./",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "build:pwa": "react-scripts build && npm run generate-icons",
+    "generate-icons": "node scripts/generate-icons.js",
+    "serve:pwa": "npx serve -s build -l 3000"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.2",

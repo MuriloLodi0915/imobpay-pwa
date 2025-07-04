@@ -88,7 +88,7 @@ const Reports: React.FC = () => {
           <div className="card-body">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={paymentStatusChartData} layout="vertical">
+                <BarChart data={paymentStatusChartData} layout="vertical" margin={{ top: 20, right: 20, bottom: 20, left: 80 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" allowDecimals={false} />
                   <YAxis dataKey="name" type="category" />
